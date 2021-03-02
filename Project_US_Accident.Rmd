@@ -1,0 +1,169 @@
+---
+title: "US_Accidents"
+author: "Vijeta Mishra"
+date: "`r format(Sys.time(), '%d %B, %Y')`" 
+ html_document:
+  theme: flatly
+toc: TRUE
+toc_float: TRUE
+code_download: TRUE
+editor_options: 
+  chunk_output_type: console
+---
+  
+```{r setup, include=FALSE, cache = F}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  error = TRUE,
+  warning= FALSE,
+  message= FALSE)
+```
+Introduction- 
+Road accident has become very common these days. In USA more than 38,000 people die in road crash each year and on an average 4.4 million people are injured seriously enough to require medical attention. Source- https://www.asirt.org/safe-travel/road-safety-facts/ 
+
+Looking at the severity of the accidents, for this project we have decided to use the US Accident- A Countrywide Traffic Accident Dataset (2016-2000) data-set to find something helpful.
+This is a country wide traffic accident data-set which covers 49 states of the US. There are about 4.2 million accident records in this data-set.It contains all sort of information related to each accident like the weather condition during the accident, which side the accident occurred, address, time of accident etc. There are a total of 49 observations.
+
+Below mentioned are the variables description-
+
+
+```{r}
+
+#run library
+
+library(tidyverse)
+
+#import dataset
+
+US_Accidents <- read_csv("US_Accidents.csv")
+
+#View data-set in new window
+
+View(US_Accidents)
+
+#Check column names of data-set
+
+colnames(US_Accidents)
+
+#Check number of rows present in data-set
+
+nrow(US_Accidents)
+
+#Sampling US_Accidents data-set. The new data-set will contain 1Million Row
+
+US_Accidents_Sample <- US_Accidents[sample(nrow(US_Accidents), 1000000, replace = FALSE, prob = NULL),]
+
+
+#Checking type of data frame to confirm its tibble
+str(US_Accidents_Sample)
+
+#View sample dataset in new window and check column names and datatype
+
+View(US_Accidents_Sample)# to view compelete dataset.
+
+glimpse(US_Accidents_Sample) # to check datatype of each column
+
+colnames(US_Accidents_Sample) # to check column names
+ 
+#View Unique State in Sample data
+
+unique(US_Accidents_Sample$State)
+ 
+#Export sample data to share with Team members
+
+write_csv(US_Accidents_Sample,"US_Accidents_Sample.csv")
+ 
+
+#Tidy data-set- This data has 1 million rows and it has many anomalies like the date and time format is not correct, there are many null values in the data-set etc. To address all these tidying data is an important step to be followed. Below mentioned are codes to tidy our data set.
+
+#Separating the date and time from column Start time and end time.
+
+US_Accidents_Sample <- US_Accidents_Sample %>% 
+  separate(Start_Time, into= c("Accident_year","Start_Accident_month", "Start_Accident_date", "Start_Accident_Hour","Start_Accident_min","Start_Accident_sec")) %>% separate(End_Time, into= c("End_Accident_year","End_Accident_month", "End_Accident_date", "End_Accident_Hour","End_Accident_min","End_Accident_sec"))
+
+
+#Removing columns which are not required for our analysis, to know the column names or number, we first check the column name and then use subset and select function to remove the unwanted columns. We also have the new dataset with the same name to avoid confusion
+
+colnames(US_Accidents_Sample)
+
+US_Accidents_Sample <- US_Accidents_Sample %>% 
+select(-c(2,3,19,20,29,30,32,33,55,57,58,59))
+
+#Accident Per Year- This graph shows the increase in number of accidents with increase in year.
+
+by_year<- US_Accidents_Sample %>% 
+  group_by(Accident_year) %>% 
+  summarise(total_accident= n())
+
+ggplot(data = US_Accidents_Sample)+
+  geom_bar(mapping = aes(x= Accident_year, color= Severity))+
+ ggtitle("Accidents by Year")+
+  theme_grey()
+
+#* not able to color severity
+
+#Accident per year with severity shows that while there is an overall increase in number of accidents every passing year and 2020 has the highest number of accidents. However, severity 3 has decreased in year 2020
+
+ggplot(data = US_Accidents_Sample)+
+  geom_bar(mapping = aes(x= Accident_year,colour = "Severity"), colour = "blue", fill = "blue")+
+  ggtitle("Accidents by Year")+
+  theme_grey()+
+  facet_wrap(~Severity)
+
+
+#Accident by State, arranged in descending order
+
+by_state<- US_Accidents_Sample %>% 
+  group_by(State) %>% 
+  summarise(No.of_accident = n()) %>% 
+  arrange(desc(No.of_accident))
+ 
+#Summary of accidents by state 
+
+summary(by_state)
+
+# graph showing top 5 state that has highest number of accidents.
+
+top_states<- top_n(by_state, 5)
+
+ggplot(data= top_states, aes(x=State, y=No.of_accident)) +
+  geom_histogram(stat="identity", fill="steelblue")+
+   ggtitle("Top 5 Accident States")+
+  geom_text(aes(label=No.of_accident), vjust=1.5, color="white", size=3.5)+
+  theme_classic()
+
+# Accidents by timezone
+by_timezone <- US_Accidents_Sample %>% 
+  group_by(Timezone) %>% 
+  summarise(accident_by_timezone= n())
+
+
+#Accident Severity Count
+ggplot(data= US_Accidents_Sample, mapping = aes(x= Severity))+
+  geom_bar(mapping = aes(fill = Sunrise_Sunset))+
+  ggtitle("Accident Severity Count Barchart")
+
+#Analyze which side of the road has more accidents.
+
+by_side <- US_Accidents_Sample %>% 
+  group_by(Side) %>% 
+  summarise(count = n())
+
+  ggplot(data = by_side, mapping = aes (x= Side,y= count))+
+  geom_bar(stat="identity")+
+    ggtitle("Accidents_by_Side")+
+    geom_text(aes(label= count), vjust=1.5, color="white", size=3.5)+
+  theme_classic()
+
+#Frequency of accidents happening in different time of the day.
+by_timeofDay<-
+  US_Accidents_Sample %>% 
+  group_by(Start_Accident_Hour) %>% 
+  summarise(accident_count= n())
+
+ggplot(data = US_Accidents_Sample)+
+  geom_bar(mapping = aes(x=Start_Accident_Hour, shade = Severity))
+
+```
+
+
